@@ -5,71 +5,70 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
-
-# 1. 頁面配置
-st.set_page_config(page_title="價值鏈終極戰略塔", layout="wide")
-st.title("🛡️ 財務-運籌數位孿生：全維度戰略監控塔")
-
-# 字體設定 (針對不同系統做相容)
-plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei', 'SimHei', 'Arial'] 
+# --- 1. Global Config & Font Setting ---
+# Use standard fonts to avoid rendering issues on GitHub/Streamlit Cloud
+plt.rcParams['font.sans-serif'] = ['Arial', 'DejaVu Sans', 'sans-serif']
 plt.rcParams['axes.unicode_minus'] = False 
 
-# --- 側邊欄：全域財務與期初數據 ---
-st.sidebar.header("🏦 全域財務設定")
-equity = st.sidebar.number_input("股東權益 (Equity)", value=5000000)
-initial_cash = st.sidebar.number_input("期初現金餘額", value=1500000)
-debt_rate = st.sidebar.slider("貸款利率 (%)", 1, 20, 8) / 100
-depreciation = st.sidebar.number_input("本期折舊費用", value=400000)
+st.set_page_config(page_title="Value Chain Strategic Tower", layout="wide")
+st.title("🛡️ Finance-Logistics Digital Twin: Strategic Monitor")
+
+# --- Sidebar: Global Finance Settings ---
+st.sidebar.header("🏦 Global Finance Setup")
+equity = st.sidebar.number_input("Equity", value=5000000)
+initial_cash = st.sidebar.number_input("Initial Cash Balance", value=1500000)
+debt_rate = st.sidebar.slider("Interest Rate (%)", 1, 20, 8) / 100
+depreciation = st.sidebar.number_input("Depreciation Expense", value=400000)
 tax_rate = 0.2
 
-st.sidebar.header("📦 期初營運數據 (上期結轉)")
-beg_inv = st.sidebar.number_input("上期期末存貨 (Beg Inv)", value=1200000)
-beg_ar = st.sidebar.number_input("上期應收帳款 (Beg AR)", value=1800000)
-beg_ap = st.sidebar.number_input("上期應付帳款 (Beg AP)", value=1000000)
+st.sidebar.header("📦 Opening Balances")
+beg_inv = st.sidebar.number_input("Beg Inventory", value=1200000)
+beg_ar = st.sidebar.number_input("Beg Accounts Receivable (AR)", value=1800000)
+beg_ap = st.sidebar.number_input("Beg Accounts Payable (AP)", value=1000000)
 
-st.sidebar.header("⚠️ 風險損耗設定")
-obs_rate = st.sidebar.slider("存貨年跌價率 (%)", 0, 30, 5) / 100
-bad_debt_rate = st.sidebar.slider("應收壞帳率 (%)", 0, 15, 2) / 100
+st.sidebar.header("⚠️ Risk & Obsolescence")
+obs_rate = st.sidebar.slider("Inv. Obsolescence Rate (%)", 0, 30, 5) / 100
+bad_debt_rate = st.sidebar.slider("Bad Debt Rate (%)", 0, 15, 2) / 100
 
-# --- 核心運算引擎 ---
+# --- Core Calculation Engine ---
 def run_engine(s_sales, s_gm, s_dio, s_dso, s_dpo):
     daily_sales = s_sales / 365
     daily_cogs = (s_sales * (1 - s_gm)) / 365
     e_inv, e_ar, e_ap = daily_cogs * s_dio, daily_sales * s_dso, daily_cogs * s_dpo
     
-    # 損益計算
+    # P&L Calculation
     ebit = (s_sales * (s_gm - 0.12)) - depreciation - (e_inv * obs_rate) - (e_ar * bad_debt_rate)
     loan = max(0.0, (e_inv + e_ar - e_ap) - initial_cash)
     interest = loan * debt_rate
     ni = max(0.0, (ebit - interest) * (1 - tax_rate))
     
-    # 指標
+    # Metrics
     roe = (ni / equity) * 100 if equity > 0 else 0
     roic = (ebit * (1 - tax_rate) / max((e_inv + 3000000), 1)) * 100
     icr = ebit / max(interest, 0.0001)
     
-    # 現金流
+    # Cash Flow
     wc_change = (e_inv - beg_inv) + (e_ar - beg_ar) - (e_ap - beg_ap)
     ocf = ni + depreciation - wc_change
     f_cash = initial_cash + ocf
     return roe, roic, ocf, icr, f_cash, loan, interest, wc_change
 
-# --- 分頁系統 ---
-tab1, tab2 = st.tabs(["🔮 AI 銷售預測中心", "📊 財務工程控制塔"])
+# --- Tabs ---
+tab1, tab2 = st.tabs(["🔮 AI Sales Forecast", "📊 Strategy Control Tower"])
 
-# --- Tab 1: AI 預測 ---
+# --- Tab 1: AI Forecast ---
 with tab1:
-    st.header("🔮 多品項 AI 銷售預測")
+    st.header("🔮 Multi-Product AI Sales Forecast")
     default_data = {
-        "品項": ["高階產品 A", "大眾產品 B", "基礎零件 C"],
-        "歷史月營收(萬/月)": [
+        "Product": ["Premium A", "Mass B", "Component C"],
+        "Hist_Monthly_Rev(10k)": [
             "100,110,105,120,130,140,150,160,155,170,185,200",
             "50,55,52,60,65,70,68,75,80,85,90,95",
             "30,31,30,32,33,35,34,36,37,38,39,40"
         ],
-        "是否為季節性": [True, False, False],
-        "預計毛利率(%)": [40, 25, 15],
-        "預計庫存天數(DIO)": [90, 60, 45]
+        "Seasonal": [True, False, False],
+        "Target_GM(%)": [40, 25, 15],
+        "Target_DIO": [90, 45, 30]
     }
     edited_df = st.data_editor(pd.DataFrame(default_data), num_rows="dynamic")
 
@@ -79,89 +78,88 @@ with tab1:
 
     for _, row in edited_df.iterrows():
         try:
-            h_data = [float(x.strip()) * 10000 for x in str(row["歷史月營收(萬/月)"]).split(",")]
-            if row["是否為季節性"]:
+            h_data = [float(x.strip()) * 10000 for x in str(row["Hist_Monthly_Rev(10k)"]).split(",")]
+            if row["Seasonal"]:
                 model = ExponentialSmoothing(h_data, trend='add', seasonal='add', seasonal_periods=4).fit()
             else:
                 model = ExponentialSmoothing(h_data, trend='add', seasonal=None).fit()
             ann_pred = float(model.forecast(1).iloc[0]) * 12
             total_annual_sales += ann_pred
             item_results.append({
-                "品項": row["品項"], 
-                "預測年營收": ann_pred, 
-                "GM": row["預計毛利率(%)"]/100, 
-                "DIO": row["預計庫存天數(DIO)"]
+                "Product": row["Product"], 
+                "Forecast_Rev": ann_pred, 
+                "GM": row["Target_GM(%)"]/100, 
+                "DIO": row["Target_DIO"]
             })
         except: continue
 
     if total_annual_sales > 0:
         for item in item_results:
-            weight = item["預測年營收"] / total_annual_sales
+            weight = item["Forecast_Rev"] / total_annual_sales
             wavg_gm += item["GM"] * weight
             wavg_dio += item["DIO"] * weight
-        st.bar_chart(pd.DataFrame(item_results).set_index("品項")["預測年營收"])
-        st.success(f"✅ AI 預估年度營收目標為 **${total_annual_sales:,.0f}**")
+        st.bar_chart(pd.DataFrame(item_results).set_index("Product")["Forecast_Rev"])
+        st.success(f"✅ AI Estimated Annual Revenue Target: **${total_annual_sales:,.0f}**")
     else:
         total_annual_sales, wavg_gm, wavg_dio = 15000000, 0.30, 60
 
-# --- Tab 2: 財務控制塔 ---
+# --- Tab 2: Control Tower ---
 with tab2:
-    st.header("📊 價值鏈聯動與壓力測試")
+    st.header("📊 Value Chain Linkage & Stress Test")
     
-    achieve_rate = st.slider("🎯 銷售達成率壓力測試 (%)", 50, 150, 100) / 100
+    achieve_rate = st.slider("🎯 Sales Achievement Stress Test (%)", 50, 150, 100) / 100
     
     c1, c2, c3 = st.columns(3)
-    base_sales = c1.number_input("AI 預測基礎營收", value=int(total_annual_sales))
+    base_sales = c1.number_input("Base AI Revenue", value=int(total_annual_sales))
     actual_sales = base_sales * achieve_rate
-    st.caption(f"📢 當前壓力測試下的實際營收: ${actual_sales:,.0f}")
+    st.caption(f"📢 Actual Revenue under Stress: ${actual_sales:,.0f}")
     
-    final_gm = c2.slider("綜合毛利率 (%)", 5, 60, int(wavg_gm*100)) / 100
-    final_dio = c3.slider("庫存天數 (DIO)", 10, 200, int(wavg_dio))
+    final_gm = c2.slider("Blended Gross Margin (%)", 5, 60, int(wavg_gm*100)) / 100
+    final_dio = c3.slider("Inventory Days (DIO)", 10, 200, int(wavg_dio))
     
     st.divider()
     g1, g2 = st.columns(2)
-    dso = g1.slider("應收天數 (DSO)", 15, 150, 60)
-    dpo = g2.slider("應付天數 (DPO)", 15, 150, 45)
+    dso = g1.slider("AR Days (DSO)", 15, 150, 60)
+    dpo = g2.slider("AP Days (DPO)", 15, 150, 45)
 
-    # 執行主運算
+    # Core Execution
     roe_v, roic_v, ocf_v, icr_v, f_cash_v, loan_v, int_v, wc_c_v = run_engine(actual_sales, final_gm, final_dio, dso, dpo)
 
-    # --- 顯示 KPI ---
-    st.subheader("📈 關鍵績效指標 (KPI)")
+    # --- KPI Dashboard ---
+    st.subheader("📈 Key Performance Indicators (KPI)")
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("ROE (股東回報)", f"{roe_v:.2f}%")
-    m2.metric("ROIC (經營效率)", f"{roic_v:.2f}%")
-    m3.metric("OCF (營運現金流)", f"${ocf_v:,.0f}")
-    m4.metric("利息保障倍數 (ICR)", f"{icr_v:.2f}")
+    m1.metric("ROE", f"{roe_v:.2f}%")
+    m2.metric("ROIC", f"{roic_v:.2f}%")
+    m3.metric("OCF (Operating Cash Flow)", f"${ocf_v:,.0f}")
+    m4.metric("ICR (Interest Coverage)", f"{icr_v:.2f}")
 
-    # --- 生存監控數據 ---
+    # --- Liquidity Monitor ---
     st.divider()
-    st.subheader("💰 生存監控與營運資金")
+    st.subheader("💰 Liquidity & Working Capital")
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("期末預估現金", f"${f_cash_v:,.0f}")
-    k2.metric("自動融資需求", f"${loan_v:,.0f}")
-    k3.metric("年度利息支出", f"-${int_v:,.0f}")
-    k4.metric("營運資金淨變動", f"-${wc_c_v:,.0f}")
+    k1.metric("Ending Cash", f"${f_cash_v:,.0f}")
+    k2.metric("Financing Need", f"${loan_v:,.0f}")
+    k3.metric("Annual Interest", f"-${int_v:,.0f}")
+    k4.metric("Net WC Change", f"-${wc_c_v:,.0f}")
 
-    # --- 敏感度分析區塊 (優化單位) ---
+    # --- Sensitivity Analysis (English Optimized) ---
     st.divider()
-    st.subheader("🎯 多維度敏感度分析")
+    st.subheader("🎯 Sensitivity Analysis")
     
     param_map = {
-        "銷售達成率": "achieve",
-        "綜合毛利率": "gm",
-        "庫存天數 (DIO)": "dio",
-        "應收天數 (DSO)": "dso"
+        "Sales Achievement": "achieve",
+        "Gross Margin": "gm",
+        "Inventory Days (DIO)": "dio",
+        "AR Days (DSO)": "dso"
     }
     
     sc1, sc2, sc3 = st.columns(3)
-    x_label = sc1.selectbox("選擇橫軸 (X-axis)", list(param_map.keys()), index=2)
-    y_label = sc2.selectbox("選擇縱軸 (Y-axis)", list(param_map.keys()), index=1)
-    z_label = sc3.selectbox("監控目標 (Z-axis)", ["ROE (%)", "營運現金流 (OCF)"])
+    x_label = sc1.selectbox("X-axis", list(param_map.keys()), index=2)
+    y_label = sc2.selectbox("Y-axis", list(param_map.keys()), index=1)
+    z_label = sc3.selectbox("Z-axis (Target)", ["ROE (%)", "Cash Flow (OCF)"])
 
-    # 單位轉換係數 (ROE保持不變, OCF轉為萬元)
     scale_factor = 1.0 if z_label == "ROE (%)" else 10000.0
-    unit_label = "%" if z_label == "ROE (%)" else "萬元"
+    unit_label = "%" if z_label == "ROE (%)" else "10k"
 
     steps = np.linspace(0.7, 1.3, 10) 
     sens_data = []
@@ -185,39 +183,38 @@ with tab2:
     sns.heatmap(sens_data, annot=True, fmt=".1f", cmap="RdYlGn",
                 xticklabels=[f"{int(s*100)}%" for s in steps],
                 yticklabels=[f"{int(s*100)}%" for s in steps], ax=ax)
-    ax.set_title(f"戰略交叉影響：{z_label} (單位：{unit_label})")
-    ax.set_xlabel(f"{x_label} 變動幅度")
-    ax.set_ylabel(f"{y_label} 變動幅度")
+    ax.set_title(f"Strategic Impact: {z_label} (Unit: {unit_label})")
+    ax.set_xlabel(f"{x_label} Variance")
+    ax.set_ylabel(f"{y_label} Variance")
     st.pyplot(fig)
 
-    # --- 龍捲風圖 (同步目標與單位) ---
-    st.subheader(f"🌪️ 戰略槓桿影響力排序 (目標：{z_label})")
-    st.caption(f"分析各因子變動 ±10% 對 {z_label} 的絕對影響量")
+    # --- Tornado Chart (English Optimized) ---
+    st.subheader(f"🌪️ Strategic Leverage Ranking (Target: {z_label})")
+    st.caption(f"Absolute impact on {z_label} per ±10% change")
     
     base_val = roe_v if z_label == "ROE (%)" else ocf_v
     
     t_scenarios = {
-        "毛利率提升 10%": run_engine(actual_sales, min(final_gm*1.1, 1.0), final_dio, dso, dpo),
-        "營收提升 10%": run_engine(actual_sales*1.1, final_gm, final_dio, dso, dpo),
-        "DIO 下降 10%": run_engine(actual_sales, final_gm, final_dio*0.9, dso, dpo),
-        "DSO 下降 10%": run_engine(actual_sales, final_gm, final_dio, dso*0.9, dpo),
+        "GM +10%": run_engine(actual_sales, min(final_gm*1.1, 1.0), final_dio, dso, dpo),
+        "Sales +10%": run_engine(actual_sales*1.1, final_gm, final_dio, dso, dpo),
+        "DIO -10%": run_engine(actual_sales, final_gm, final_dio*0.9, dso, dpo),
+        "DSO -10%": run_engine(actual_sales, final_gm, final_dio, dso*0.9, dpo),
     }
     
     idx = 0 if z_label == "ROE (%)" else 2
     tornado_df = pd.DataFrame({
-        "因子": t_scenarios.keys(),
-        "變化量": [(v[idx] - base_val) / scale_factor for v in t_scenarios.values()]
-    }).sort_values(by="變化量")
+        "Factor": t_scenarios.keys(),
+        "Impact": [(v[idx] - base_val) / scale_factor for v in t_scenarios.values()]
+    }).sort_values(by="Impact")
     
-    st.bar_chart(tornado_df.set_index("因子"))
+    st.bar_chart(tornado_df.set_index("Factor"))
 
-    # 戰略診斷
+    # Strategic Diagnosis
     st.divider()
-    st.subheader("🤖 自動戰略診斷報告")
+    st.subheader("🤖 Strategic Diagnosis Report")
     if achieve_rate < 0.8:
-        st.warning(f"⚠️ **銷售低迷警報**：達成率僅 {achieve_rate*100:.0f}%，注意資產減損風險。")
+        st.warning(f"⚠️ **Sales Warning**: Achievement at {achieve_rate*100:.0f}%. Watch out for inventory write-downs.")
     if ocf_v < 0: 
-        st.error(f"🚨 **流動性危機**：營運現金流入不敷出。建議優先縮短 DSO 或延展 DPO。")
+        st.error(f"🚨 **Liquidity Crisis**: Negative OCF. Optimize DSO or extend DPO immediately.")
     elif roe_v > 15:
-        st.success(f"🌟 **績效卓越**：目前的配置下股東回報相當理想。")
-
+        st.success(f"🌟 **Strong Performance**: Optimal configuration for shareholder returns.")
