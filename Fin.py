@@ -5,7 +5,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
-plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial']
 
 # 1. 頁面配置
 st.set_page_config(page_title="價值鏈終極戰略塔", layout="wide")
@@ -221,3 +220,4 @@ with tab2:
         st.error(f"🚨 **流動性危機**：營運現金流入不敷出。建議優先縮短 DSO 或延展 DPO。")
     elif roe_v > 15:
         st.success(f"🌟 **績效卓越**：目前的配置下股東回報相當理想。")
+
